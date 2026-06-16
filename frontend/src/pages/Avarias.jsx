@@ -9,6 +9,7 @@ import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import EmptyState from '../components/EmptyState.jsx';
 import ListToolbar from '../components/ListToolbar.jsx';
 import Pagination from '../components/Pagination.jsx';
+import { useAuth } from '../contexts/AuthContext.jsx';
 
 const EMPTY = { nome: '', valor: '' };
 
@@ -16,6 +17,8 @@ export default function Avarias() {
   const { data, loading, refetch } = useCrud('/avarias');
   const list = useListView(data, r => r.nome);
   const toast = useToast();
+  const { user } = useAuth();
+  const podeEditar = user?.cargo === 'Gerente'; // Atendente vê, mas não edita avarias
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState(EMPTY);
   const [editing, setEditing] = useState(null);
@@ -68,9 +71,11 @@ export default function Avarias() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="page-title">Avarias</h1>
-        <button className="btn-primary" onClick={openCreate}>
-          <Plus className="h-4 w-4" /> Nova avaria
-        </button>
+        {podeEditar && (
+          <button className="btn-primary" onClick={openCreate}>
+            <Plus className="h-4 w-4" /> Nova avaria
+          </button>
+        )}
       </div>
 
       {data.length > 0 && (
@@ -85,7 +90,7 @@ export default function Avarias() {
         ) : data.length === 0 ? (
           <EmptyState
             message="Nenhuma avaria cadastrada."
-            action={<button className="btn-primary" onClick={openCreate}><Plus className="h-4 w-4" /> Nova avaria</button>}
+            action={podeEditar ? <button className="btn-primary" onClick={openCreate}><Plus className="h-4 w-4" /> Nova avaria</button> : undefined}
           />
         ) : list.isEmpty ? (
           <EmptyState message={`Nenhuma avaria encontrada para “${list.query}”.`} />
@@ -106,14 +111,16 @@ export default function Avarias() {
                       <td className="td">{row.nome}</td>
                       <td className="td-r">R$ {parseFloat(row.valor).toFixed(2)}</td>
                       <td className="td">
-                        <div className="flex items-center gap-1 justify-end">
-                          <button className="btn-ghost p-1.5" onClick={() => openEdit(row)} aria-label="Editar">
-                            <Pencil className="h-3.5 w-3.5" />
-                          </button>
-                          <button className="btn-ghost p-1.5" onClick={() => setDelId(row.id)} aria-label="Remover">
-                            <Trash2 className="h-3.5 w-3.5" style={{ color: '#DC2626' }} />
-                          </button>
-                        </div>
+                        {podeEditar && (
+                          <div className="flex items-center gap-1 justify-end">
+                            <button className="btn-ghost p-1.5" onClick={() => openEdit(row)} aria-label="Editar">
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                            <button className="btn-ghost p-1.5" onClick={() => setDelId(row.id)} aria-label="Remover">
+                              <Trash2 className="h-3.5 w-3.5" style={{ color: '#DC2626' }} />
+                            </button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}

@@ -31,6 +31,15 @@ function toInput(dt) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+// O <input datetime-local> devolve um horário local "cru" (sem fuso). Convertendo para ISO com fuso,
+// o servidor (em UTC) interpreta o mesmo instante — sem isso, uma retirada minutos à frente é lida
+// como "no passado" por causa do deslocamento UTC−3.
+function toISO(v) {
+  if (!v) return v;
+  const d = new Date(v);
+  return isNaN(d) ? v : d.toISOString();
+}
+
 export default function Reservas() {
   const { data, loading, refetch } = useCrud('/reservas');
   const list = useListView(data, r => `#${r.id} ${r.cliente?.nome ?? ''} ${r.status} ${r.categoriaVeiculo?.nome ?? ''} ${r.agenciaRetirada?.nome ?? ''}`);
@@ -107,8 +116,8 @@ export default function Reservas() {
         funcionarioId: parseInt(form.funcionarioId),
         agenciaRetiradaId: parseInt(form.agenciaRetiradaId),
         agenciaDevolucaoId: parseInt(form.agenciaDevolucaoId),
-        dataRetirada: form.dataRetirada,
-        dataDevolucao: form.dataDevolucao,
+        dataRetirada: toISO(form.dataRetirada),
+        dataDevolucao: toISO(form.dataDevolucao),
         seguroId: form.seguroId ? parseInt(form.seguroId) : null,
       };
       if (editing) {
@@ -367,6 +376,7 @@ function ReservaDetail({ id, onClose }) {
               <Field label="Retirada">{dateTime(r.dataRetirada)}</Field>
               <Field label="Devolução">{dateTime(r.dataDevolucao)}</Field>
               <Field label="Duração">{dias} dia(s)</Field>
+              <Field label="Criada em">{dateTime(r.createdAt ?? r.created_at)}</Field>
             </FieldGrid>
           </Section>
 

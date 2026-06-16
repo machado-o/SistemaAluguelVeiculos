@@ -78,13 +78,23 @@ async function verificarRegrasDeNegocio({ dataCheckout, quilometragemCheckout, c
 
 class CheckoutService {
 
+  // Include explícito: traz as associações diretas + checkin.veiculo (placa exibida na lista).
+  // Evita { all: true, nested: true }, que expande toda a árvore de relações e gera uma query gigante.
+  static get includeCompleto() {
+    return [
+      { association: 'checkin', include: ['veiculo'] },
+      'funcionario',
+      'avarias',
+    ];
+  }
+
   static async findAll() {
-    return await Checkout.findAll({ include: { all: true } });
+    return await Checkout.findAll({ include: CheckoutService.includeCompleto });
   }
 
   static async findByPk(req) {
     const { id } = req.params;
-    return await Checkout.findByPk(id, { include: { all: true } });
+    return await Checkout.findByPk(id, { include: CheckoutService.includeCompleto });
   }
 
   static async create(req) {

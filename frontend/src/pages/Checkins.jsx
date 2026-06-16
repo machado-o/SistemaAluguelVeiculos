@@ -24,6 +24,13 @@ function toInput(dt) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+// Envia o horário local do input como ISO com fuso, para o servidor (UTC) gravar o instante correto.
+function toISO(v) {
+  if (!v) return v;
+  const d = new Date(v);
+  return isNaN(d) ? v : d.toISOString();
+}
+
 export default function Checkins() {
   const { data, loading, refetch } = useCrud('/checkins');
   const list = useListView(data, r => `#${r.id} #${r.reservaId} ${r.reserva?.cliente?.nome ?? ''} ${r.veiculo?.placa ?? ''} ${r.funcionario?.nome ?? ''}`);
@@ -67,7 +74,7 @@ export default function Checkins() {
       const body = {
         reservaId: parseInt(form.reservaId),
         funcionarioId: parseInt(form.funcionarioId),
-        dataCheckin: form.dataCheckin,
+        dataCheckin: toISO(form.dataCheckin),
         cnhCondutor: form.cnhCondutor,
         cnhValidade: form.cnhValidade,
         quilometragemCheckin: parseFloat(form.quilometragemCheckin),
@@ -114,7 +121,7 @@ export default function Checkins() {
     setEditSaving(true);
     try {
       const body = {
-        dataCheckin: editForm.dataCheckin,
+        dataCheckin: toISO(editForm.dataCheckin),
         cnhCondutor: editForm.cnhCondutor,
         cnhValidade: editForm.cnhValidade,
         quilometragemCheckin: parseFloat(editForm.quilometragemCheckin),

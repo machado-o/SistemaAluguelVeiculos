@@ -24,6 +24,13 @@ function fmt(dt) {
   return new Date(dt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
 }
 
+// Envia o horário local do input como ISO com fuso, para o servidor (UTC) gravar o instante correto.
+function toISO(v) {
+  if (!v) return v;
+  const d = new Date(v);
+  return isNaN(d) ? v : d.toISOString();
+}
+
 export default function Checkouts() {
   const { data, loading, refetch } = useCrud('/checkouts');
   const list = useListView(data, r => `#${r.id} #${r.checkinId} ${r.checkin?.veiculo?.placa ?? ''} ${r.funcionario?.nome ?? ''} ${r.nivelCombustivel}`);
@@ -80,7 +87,7 @@ export default function Checkouts() {
       const body = {
         checkinId: parseInt(form.checkinId),
         funcionarioId: parseInt(form.funcionarioId),
-        dataCheckout: form.dataCheckout,
+        dataCheckout: toISO(form.dataCheckout),
         quilometragemCheckout: parseFloat(form.quilometragemCheckout),
         nivelCombustivel: form.nivelCombustivel,
         condicaoPneus: form.condicaoPneus,

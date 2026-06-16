@@ -92,13 +92,24 @@ async function verificarRegrasDeNegocio({ cnhCondutor, reserva, veiculoId, isUpd
 
 class CheckinService {
 
+  // Include explícito: traz as associações diretas + reserva.cliente (nome exibido na lista).
+  // Evita { all: true, nested: true }, que expande toda a árvore de relações e gera uma query gigante.
+  static get includeCompleto() {
+    return [
+      { association: 'reserva', include: ['cliente'] },
+      'veiculo',
+      'funcionario',
+      'checkout',
+    ];
+  }
+
   static async findAll() {
-    return await Checkin.findAll({ include: { all: true } });
+    return await Checkin.findAll({ include: CheckinService.includeCompleto });
   }
 
   static async findByPk(req) {
     const { id } = req.params;
-    return await Checkin.findByPk(id, { include: { all: true } });
+    return await Checkin.findByPk(id, { include: CheckinService.includeCompleto });
   }
 
   static async create(req) {

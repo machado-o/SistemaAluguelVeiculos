@@ -9,6 +9,7 @@ import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import EmptyState from '../components/EmptyState.jsx';
 import ListToolbar from '../components/ListToolbar.jsx';
 import Pagination from '../components/Pagination.jsx';
+import { useAuth } from '../contexts/AuthContext.jsx';
 
 const EMPTY = { nome: '', empresaSeguradora: '', descricao: '', valorDiariaAdicional: '', franquia: '', coberturaIds: [] };
 
@@ -17,6 +18,8 @@ export default function Seguros() {
   const { data: coberturas } = useCrud('/coberturas');
   const list = useListView(data, r => `${r.nome} ${r.empresaSeguradora}`);
   const toast = useToast();
+  const { user } = useAuth();
+  const podeEditar = user?.cargo === 'Gerente'; // Atendente vê, mas não edita seguros
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState(EMPTY);
   const [editing, setEditing] = useState(null);
@@ -62,7 +65,9 @@ export default function Seguros() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="page-title">Seguros</h1>
-        <button className="btn-primary" onClick={openCreate}><Plus className="h-4 w-4" /> Novo seguro</button>
+        {podeEditar && (
+          <button className="btn-primary" onClick={openCreate}><Plus className="h-4 w-4" /> Novo seguro</button>
+        )}
       </div>
 
       {data.length > 0 && (
@@ -73,7 +78,7 @@ export default function Seguros() {
         {loading ? (
           <div className="flex items-center justify-center py-16 text-sm" style={{ color: '#6B7280' }}>Carregando…</div>
         ) : data.length === 0 ? (
-          <EmptyState message="Nenhum seguro cadastrado." action={<button className="btn-primary" onClick={openCreate}><Plus className="h-4 w-4" /> Novo seguro</button>} />
+          <EmptyState message="Nenhum seguro cadastrado." action={podeEditar ? <button className="btn-primary" onClick={openCreate}><Plus className="h-4 w-4" /> Novo seguro</button> : undefined} />
         ) : list.isEmpty ? (
           <EmptyState message={`Nenhum seguro encontrado para “${list.query}”.`} />
         ) : (
@@ -100,10 +105,12 @@ export default function Seguros() {
                     <td className="td-r">R$ {parseFloat(row.franquia).toFixed(2)}</td>
                     <td className="td-r">{(row.coberturas || []).length}</td>
                     <td className="td">
-                      <div className="flex items-center gap-1 justify-end">
-                        <button className="btn-ghost p-1.5" onClick={() => openEdit(row)}><Pencil className="h-3.5 w-3.5" /></button>
-                        <button className="btn-ghost p-1.5" onClick={() => setDelId(row.id)}><Trash2 className="h-3.5 w-3.5" style={{ color: '#DC2626' }} /></button>
-                      </div>
+                      {podeEditar && (
+                        <div className="flex items-center gap-1 justify-end">
+                          <button className="btn-ghost p-1.5" onClick={() => openEdit(row)}><Pencil className="h-3.5 w-3.5" /></button>
+                          <button className="btn-ghost p-1.5" onClick={() => setDelId(row.id)}><Trash2 className="h-3.5 w-3.5" style={{ color: '#DC2626' }} /></button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}
