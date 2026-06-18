@@ -32,6 +32,7 @@ export default function Veiculos() {
   const [detailId, setDetailId] = useState(null);
 
   const F = (k) => (e) => setForm(p => ({ ...p, [k]: e.target.value }));
+  const FUpper = (k) => (e) => setForm(p => ({ ...p, [k]: e.target.value.toUpperCase() }));
 
   const openCreate = () => { setEditing(null); setForm(EMPTY); setModal(true); };
   const openEdit = (row) => {
@@ -130,12 +131,12 @@ export default function Veiculos() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="field-label">Placa</label>
-              <input className="field-input font-mono" value={form.placa} onChange={F('placa')} maxLength={7} placeholder="ABC1D23" style={{ fontFamily: "'JetBrains Mono', monospace", textTransform: 'uppercase' }} />
+              <input className="field-input font-mono" value={form.placa} onChange={FUpper('placa')} maxLength={7} placeholder="ABC1D23" style={{ fontFamily: "'JetBrains Mono', monospace", textTransform: 'uppercase' }} />
               <p className="field-hint">Padrão Mercosul ou antigo</p>
             </div>
             <div>
               <label className="field-label">Chassi</label>
-              <input className="field-input font-mono" value={form.chassi} onChange={F('chassi')} maxLength={17} style={{ fontFamily: "'JetBrains Mono', monospace", textTransform: 'uppercase' }} />
+              <input className="field-input font-mono" value={form.chassi} onChange={FUpper('chassi')} maxLength={17} style={{ fontFamily: "'JetBrains Mono', monospace", textTransform: 'uppercase' }} />
               <p className="field-hint">17 caracteres alfanuméricos</p>
             </div>
             <div>

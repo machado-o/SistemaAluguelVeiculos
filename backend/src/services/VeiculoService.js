@@ -15,7 +15,9 @@ class VeiculoService {
   }
 
   static async create(req) {
-    const { placa, chassi, status, marca, modelo, cor, anoFabricacao, quilometragem, categoriaVeiculoId, agenciaId } = req.body;
+    const { status, marca, modelo, cor, anoFabricacao, quilometragem, categoriaVeiculoId, agenciaId } = req.body;
+    const placa  = req.body.placa?.toUpperCase().trim();
+    const chassi = req.body.chassi?.toUpperCase().trim();
     const erros = [];
 
     const [categoria, agencia] = await Promise.all([
@@ -36,7 +38,9 @@ class VeiculoService {
 
   static async update(req) {
     const { id } = req.params;
-    const { placa, chassi, status, marca, modelo, cor, anoFabricacao, quilometragem, categoriaVeiculoId, agenciaId } = req.body;
+    const { status, marca, modelo, cor, anoFabricacao, quilometragem, categoriaVeiculoId, agenciaId } = req.body;
+    const placa  = req.body.placa  != null ? req.body.placa.toUpperCase().trim()  : undefined;
+    const chassi = req.body.chassi != null ? req.body.chassi.toUpperCase().trim() : undefined;
 
     const obj = await Veiculo.findByPk(id, { include: { all: true } });
     if (obj == null) throw 'Veículo não encontrado!';

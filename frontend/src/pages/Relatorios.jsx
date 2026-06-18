@@ -18,7 +18,7 @@ const REPORTS = [
 function fmtBRL(v) { return `R$ ${parseFloat(v || 0).toFixed(2)}`; }
 function fmtN(v) { return parseInt(v || 0).toLocaleString('pt-BR'); }
 
-function ReportTable({ reportKey, dados }) {
+function ReportTable({ reportKey, dados, totals }) {
   if (!dados) return null;
   if (dados.length === 0) return <p className="px-4 py-8 text-sm text-center" style={{ color: '#6B7280' }}>Nenhum resultado encontrado para o período selecionado.</p>;
 
@@ -56,6 +56,7 @@ function ReportTable({ reportKey, dados }) {
       { h: 'Km média', r: d => `${parseFloat(d.quilometragemMediaCheckin || 0).toLocaleString('pt-BR')} km`, right: true, mono: true },
       { h: 'Km máx.', r: d => `${parseFloat(d.maiorQuilometragemCheckin || 0).toLocaleString('pt-BR')} km`, right: true, mono: true },
       { h: 'Clientes únicos', r: d => fmtN(d.clientesUnicos), right: true },
+      { h: 'Top funcionário', r: d => d.funcionarioComMaisCheckins || '—' },
     ],
     'checkouts-avarias-por-veiculo': [
       { h: 'Veículo', r: d => <div><div className="font-mono font-semibold">{d.placa}</div><div className="text-xs" style={{ color: '#6B7280' }}>{d.marca} {d.modelo}</div></div> },
@@ -77,7 +78,36 @@ function ReportTable({ reportKey, dados }) {
     ],
   };
 
+  // Mapeamento: header da coluna → { field: chave no totals, fmt: função }
+  const footerConfig = {
+    'reservas-por-funcionario': {
+      'Qtd. reservas': { field: 'totalReservasGlobal', fmt: fmtN },
+      'Valor total':   { field: 'totalValorGlobal',    fmt: fmtBRL },
+    },
+    'reservas-por-categoria': {
+      'Qtd. reservas': { field: 'totalReservasGlobal', fmt: fmtN },
+      'Valor total':   { field: 'totalValorGlobal',    fmt: fmtBRL },
+    },
+    'checkins-por-agencia': {
+      'Qtd. check-ins': { field: 'totalCheckinsGlobal', fmt: fmtN },
+    },
+    'checkins-por-veiculo': {
+      'Qtd. check-ins': { field: 'totalCheckinsGlobal', fmt: fmtN },
+    },
+    'checkouts-avarias-por-veiculo': {
+      'Avarias':            { field: 'totalAvariasGlobal',     fmt: fmtN },
+      'Valor total avarias': { field: 'totalValorAvariasGlobal', fmt: fmtBRL },
+    },
+    'checkouts-multas-por-cliente': {
+      'Multas':             { field: 'totalMultasGlobal',     fmt: fmtN },
+      'Valor total multas': { field: 'totalValorMultasGlobal', fmt: fmtBRL },
+    },
+  };
+
   const columns = cols[reportKey] || [];
+  const colFooter = footerConfig[reportKey] || {};
+  const showTotalRow = totals != null && Object.keys(colFooter).length > 0;
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full">
@@ -99,6 +129,24 @@ function ReportTable({ reportKey, dados }) {
             </tr>
           ))}
         </tbody>
+        {showTotalRow && (
+          <tfoot>
+            <tr style={{ borderTop: '2px solid #E7E5E4', background: '#F9FAFB' }}>
+              {columns.map((c, i) => {
+                const cfg = colFooter[c.h];
+                return (
+                  <td
+                    key={i}
+                    className={c.right ? 'td-r' : 'td'}
+                    style={{ fontWeight: 600, color: '#1F2937' }}
+                  >
+                    {i === 0 ? 'Total no período' : cfg ? cfg.fmt(totals[cfg.field]) : ''}
+                  </td>
+                );
+              })}
+            </tr>
+          </tfoot>
+        )}
       </table>
     </div>
   );
@@ -208,7 +256,7 @@ export default function Relatorios() {
             )}
             {result && !loading && (
               <>
-                <ReportTable reportKey={active} dados={result.dados} />
+                <ReportTable reportKey={active} dados={result.dados} totals={result} />
                 <Pagination paginacao={result.paginacao} onChange={fetchReport} />
               </>
             )}
