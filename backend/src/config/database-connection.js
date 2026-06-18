@@ -155,7 +155,8 @@ function databaseInserts() {
         // reserva9 (id=9): cliente3, catSedan → para testes de quilometragem/data inválidas no checkout (checkin7)
         const reserva9  = await Reserva.create({ dataRetirada: "2026-01-10 08:00:00", dataDevolucao: "2026-01-20 18:00:00", valorDiaria: 220.00, quantidadeDias: 10, valorSeguro: 0.00, valorFinal: 1936.00, status: "Pendente", clienteId: cliente3.id, categoriaVeiculoId: catSedan.id, funcionarioId: func3.id, agenciaRetiradaId: agencia3.id, agenciaDevolucaoId: agencia3.id });
         // reserva10 (id=10): cliente5 (>3 avarias históricas), catSUV → para testar taxa de inspeção (checkin8)
-        const reserva10 = await Reserva.create({ dataRetirada: "2026-04-01 08:00:00", dataDevolucao: "2026-04-10 18:00:00", valorDiaria: 350.00, quantidadeDias:  9, valorSeguro: 0.00, valorFinal: 2677.50, status: "Pendente", clienteId: cliente5.id, categoriaVeiculoId: catSUV.id,   funcionarioId: func2.id, agenciaRetiradaId: agencia2.id, agenciaDevolucaoId: agencia2.id });
+        //   valorFinal = 9×350 = 3150 + desconto agencia2 (15%,5dias,≥2 reservas=3150*0.85=2677.50) + taxaInspecao 150 = 2827.50
+        const reserva10 = await Reserva.create({ dataRetirada: "2026-04-01 08:00:00", dataDevolucao: "2026-04-10 18:00:00", valorDiaria: 350.00, quantidadeDias:  9, valorSeguro: 0.00, taxaInspecao: 150.00, valorFinal: 2827.50, status: "Pendente", clienteId: cliente5.id, categoriaVeiculoId: catSUV.id,   funcionarioId: func2.id, agenciaRetiradaId: agencia2.id, agenciaDevolucaoId: agencia2.id });
 
         // reserva_upgrade (id=11): cliente2, catEconomico (id=1, TODOS veículos Reservados), 2030-04-01→05
         //   → testa upgrade automático de categoria — sem veiculoId no body; sistema seleciona veiculo catHatch
@@ -213,8 +214,9 @@ function databaseInserts() {
         const checkout3 = await Checkout.create({ dataCheckout: fmt(plusDays(-20), "15:10"), quilometragemCheckout: 31800.00, nivelCombustivel: "Baixo", condicaoPneus: "Ruim",    condicaoPalhetas: "Ressecadas", limpoInternamente: false, limpoExternamente: false, taxaInspecao: 0, checkinId: checkin3.id, funcionarioId: func4.id });
         const checkout4 = await Checkout.create({ dataCheckout: fmt(plusDays(-19), "14:50"), quilometragemCheckout: 40900.00, nivelCombustivel: "Vazio", condicaoPneus: "Furado",  condicaoPalhetas: "Quebradas",  limpoInternamente: true,  limpoExternamente: false, taxaInspecao: 0, checkinId: checkin4.id, funcionarioId: func3.id });
         // checkouts 5 e 6: 2 avarias cada → cliente5 acumula 4 avarias → taxa de inspeção aplica no checkin8
-        const checkout5 = await Checkout.create({ dataCheckout: fmt(plusDays(-35), "17:00"), quilometragemCheckout:  2000.00, nivelCombustivel: "Médio", condicaoPneus: "Bom",    condicaoPalhetas: "Boas",       limpoInternamente: true,  limpoExternamente: true,  taxaInspecao: 0, checkinId: checkin5.id, funcionarioId: func1.id });
-        const checkout6 = await Checkout.create({ dataCheckout: fmt(plusDays(-15), "17:00"), quilometragemCheckout: 25800.00, nivelCombustivel: "Médio", condicaoPneus: "Bom",    condicaoPalhetas: "Boas",       limpoInternamente: true,  limpoExternamente: true,  taxaInspecao: 0, checkinId: checkin6.id, funcionarioId: func2.id });
+        const checkout5 = await Checkout.create({ dataCheckout: fmt(plusDays(-35), "17:00"), quilometragemCheckout:  2000.00, nivelCombustivel: "Médio", condicaoPneus: "Bom",    condicaoPalhetas: "Boas",       limpoInternamente: true,  limpoExternamente: true,  taxaInspecao:   0, checkinId: checkin5.id, funcionarioId: func1.id });
+        // checkout6: avaria3+avaria4 elevam cliente5 a 4 avarias totais → taxaInspecao=150 (indica que próxima reserva será cobrada)
+        const checkout6 = await Checkout.create({ dataCheckout: fmt(plusDays(-15), "17:00"), quilometragemCheckout: 25800.00, nivelCombustivel: "Médio", condicaoPneus: "Bom",    condicaoPalhetas: "Boas",       limpoInternamente: true,  limpoExternamente: true,  taxaInspecao: 150, checkinId: checkin6.id, funcionarioId: func2.id });
 
         await checkout1.addAvarias([avaria1]);
         await checkout2.addAvarias([avaria2]);
@@ -222,6 +224,12 @@ function databaseInserts() {
         await checkout4.addAvarias([avaria4]);
         await checkout5.addAvarias([avaria1, avaria2]);
         await checkout6.addAvarias([avaria3, avaria4]);
+
+        // Sincronizar quilometragem dos veículos com o checkout mais recente (replica o que CheckoutService faz)
+        await veiculo1.update({ quilometragem: 2000.00 });   // max(checkout2=1880, checkout5=2000)
+        await veiculo2.update({ quilometragem: 25800.00 });  // checkout6=25800 (veiculo2 está Reservado via checkin8)
+        await veiculo3.update({ quilometragem: 31800.00 });  // checkout3=31800 (veiculo3 está Reservado via checkin7)
+        await veiculo4.update({ quilometragem: 40900.00 });  // checkout4=40900
 
         // ─── MULTAS DE AVARIA (geradas pelos checkouts históricos) ───────────────
         // Fórmula: com seguro → min(totalAvarias, franquia); sem seguro → totalAvarias

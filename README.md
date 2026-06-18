@@ -34,8 +34,8 @@ Sistema de Aluguel de Veiculos
 2. Reserva: O sistema bloqueia a criação de reservas para clientes que já possuem outra reserva ativa (não cancelada e não concluída) cujo período se sobreponha ao solicitado.
 3. Check-in: Caso não haja veículos disponíveis na categoria solicitada, o sistema busca automaticamente um veículo de categoria superior e realiza o upgrade gratuitamente para o cliente.
 4. Check-in: O sistema bloqueia o check-in de clientes que possuam multas com status "Pendente" em seu histórico.
-5. Check-out: A quilometragem de devolução deve ser maior que a registrada no check-in e não pode ser inferior à maior quilometragem já registrada no histórico de checkouts daquele veículo. Após o checkout, o odômetro do veículo é atualizado.
-6. Check-out: Clientes com mais de 3 avarias acumuladas em checkouts anteriores têm uma taxa de inspeção de R$ 150,00 aplicada automaticamente ao checkout.
+5. Check-out: A quilometragem de devolução deve ser maior ou igual à registrada no check-in e não pode ser inferior à maior quilometragem já registrada no histórico de checkouts daquele veículo. Após o checkout, o odômetro do veículo é atualizado.
+6. Reserva: Quando um cliente acumula mais de 3 avarias em locações anteriores (somando todos os seus checkouts concluídos), uma taxa de inspeção de R$ 150,00 é cobrada automaticamente na próxima reserva, adicionada ao valor final. O check-out que ultrapassa o limite exibe o indicador de R$ 150,00 para sinalizar que a cobrança ocorrerá na reserva seguinte.
 
 ### Relatórios:
 
@@ -429,7 +429,7 @@ Todos os endpoints seguem o padrão REST. Respostas são em JSON. Erros retornam
 }
 ```
 
-> `valorDiaria`, `quantidadeDias`, `valorSeguro` e `valorFinal` são **calculados automaticamente** pelo sistema a partir da categoria, seguro e datas informados. Desconto automático é aplicado se `quantidadeDias >= limiteDiasDesconto` da agência de retirada **e** a agência possui ao menos 2 reservas concluídas em seu histórico.
+> `valorDiaria`, `quantidadeDias`, `valorSeguro`, `taxaInspecao` e `valorFinal` são **calculados automaticamente** pelo sistema. Desconto automático é aplicado se `quantidadeDias >= limiteDiasDesconto` da agência de retirada **e** a agência possui ao menos 2 reservas concluídas em seu histórico. Se o cliente acumular mais de 3 avarias em locações anteriores, `taxaInspecao = 150.00` é adicionada ao `valorFinal`.
 
 `status` (somente leitura): `"Pendente"` → `"Confirmada"` (após check-in) → `"Concluída"` (após check-out) | `"Cancelada"`
 
@@ -493,7 +493,7 @@ Todos os endpoints seguem o padrão REST. Respostas são em JSON. Erros retornam
 
 `nivelCombustivel`: `"Alto"` | `"Médio"` | `"Baixo"` | `"Vazio"` — `condicaoPneus`: `"Bom"` | `"Regular"` | `"Ruim"` | `"Furado"` — `condicaoPalhetas`: `"Boas"` | `"Ressecadas"` | `"Quebradas"` | `"Ausentes"` — `avariaIds` é opcional.
 
-> A quilometragem de devolução deve ser maior que a registrada no check-in e não pode ser inferior à maior quilometragem já registrada no histórico de checkouts daquele veículo. Após o check-out, o odômetro do veículo é atualizado, o status volta para `"Disponível"` e a reserva vai para `"Concluída"`. Clientes com mais de 3 avarias em locações anteriores recebem taxa de inspeção de R$ 150,00. Se avarias forem informadas, uma multa é gerada automaticamente com valor = `min(totalAvarias, franquia do seguro)` ou `totalAvarias` caso não haja seguro.
+> A quilometragem de devolução deve ser maior ou igual à registrada no check-in e não pode ser inferior à maior quilometragem já registrada no histórico daquele veículo. Após o check-out, o odômetro é atualizado, o status volta para `"Disponível"` e a reserva vai para `"Concluída"`. O campo `taxaInspecao` no retorno indica se o cliente ultrapassou 3 avarias totais (incluindo as deste checkout) — valor R$ 150,00 significa que a **próxima reserva** desse cliente será cobrada. Se avarias forem informadas, uma multa é gerada automaticamente com valor = `min(totalAvarias, franquia do seguro)` ou `totalAvarias` caso não haja seguro.
 
 ---
 

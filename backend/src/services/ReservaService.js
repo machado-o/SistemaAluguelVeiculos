@@ -5,7 +5,33 @@ import { CategoriaVeiculo } from "../models/CategoriaVeiculo.js";
 import { Seguro } from "../models/Seguro.js";
 import { Cliente } from "../models/Cliente.js";
 import { Funcionario } from "../models/Funcionario.js";
+import { Checkin } from "../models/Checkin.js";
+import { Checkout } from "../models/Checkout.js";
+import { Avaria } from "../models/Avaria.js";
 import { validarModel } from "./_validarModel.js";
+
+const TAXA_INSPECAO = 150.00;
+
+// Taxa de inspeção: cobrada na reserva quando o cliente acumula mais de 3 avarias em aluguéis anteriores
+async function calcularTaxaInspecao(clienteId) {
+  const reservas = await Reserva.findAll({ where: { clienteId }, attributes: ['id'], raw: true });
+  if (reservas.length === 0) return 0;
+
+  const checkins = await Checkin.findAll({
+    where: { reservaId: { [Op.in]: reservas.map(r => r.id) } },
+    attributes: ['id'],
+    raw: true,
+  });
+  if (checkins.length === 0) return 0;
+
+  const checkouts = await Checkout.findAll({
+    where: { checkinId: { [Op.in]: checkins.map(c => c.id) } },
+    include: [{ model: Avaria, as: 'avarias' }],
+  });
+
+  const total = checkouts.reduce((sum, co) => sum + co.avarias.length, 0);
+  return total > 3 ? TAXA_INSPECAO : 0;
+}
 
 // Regra 1: desconto aplicado apenas por agências com histórico operacional comprovado (mínimo 2 reservas concluídas)
 async function calcularValoresFinanceiros({ agenciaRetiradaId, categoria, seguro, dataRetirada, dataDevolucao }) {
@@ -148,14 +174,16 @@ class ReservaService {
 
     await verificarRegrasDeNegocio({ dataRetirada, dataDevolucao, clienteId, agenciaRetiradaId, agenciaDevolucaoId, erros });
 
-    const { quantidadeDias, valorDiaria, valorSeguro, valorFinal } = await calcularValoresFinanceiros({ agenciaRetiradaId, categoria, seguro, dataRetirada, dataDevolucao });
+    const { quantidadeDias, valorDiaria, valorSeguro, valorFinal: valorFinalBase } = await calcularValoresFinanceiros({ agenciaRetiradaId, categoria, seguro, dataRetirada, dataDevolucao });
+    const taxaInspecao = cliente ? await calcularTaxaInspecao(clienteId) : 0;
+    const valorFinal = parseFloat(((valorFinalBase ?? 0) + taxaInspecao).toFixed(2));
 
-    erros.push(...await validarModel(Reserva.build({ dataRetirada, dataDevolucao, valorDiaria, quantidadeDias, valorSeguro, valorFinal })));
+    erros.push(...await validarModel(Reserva.build({ dataRetirada, dataDevolucao, valorDiaria, quantidadeDias, valorSeguro, valorFinal, taxaInspecao })));
 
     if (erros.length > 0) throw erros.join(" ");
 
     const obj = await Reserva.create({
-      dataRetirada, dataDevolucao, valorDiaria, quantidadeDias, valorSeguro, valorFinal,
+      dataRetirada, dataDevolucao, valorDiaria, quantidadeDias, valorSeguro, valorFinal, taxaInspecao,
       clienteId, categoriaVeiculoId, funcionarioId, seguroId, agenciaRetiradaId, agenciaDevolucaoId,
     });
     return await Reserva.findByPk(obj.id, { include: { all: true } });
@@ -190,25 +218,32 @@ class ReservaService {
     // Valores financeiros nunca vêm do cliente. Quando datas/categoria/seguro/agência mudam,
     // recalculamos no servidor (mesma regra do create) para a edição não deixar valores defasados.
     let financeiroRecalculado = {};
-    const mudouFinanceiro = [dataRetirada, dataDevolucao, categoriaVeiculoId, seguroId, agenciaRetiradaId]
+    const mudouFinanceiro = [dataRetirada, dataDevolucao, categoriaVeiculoId, seguroId, agenciaRetiradaId, clienteId]
       .some((v) => v !== undefined);
     if (mudouFinanceiro) {
       const categoriaIdFinal = categoriaVeiculoId ?? obj.categoriaVeiculoId;
       const seguroIdFinal = seguroId !== undefined ? seguroId : obj.seguroId;
       const agenciaRetiradaIdFinal = agenciaRetiradaId ?? obj.agenciaRetiradaId;
+      const clienteIdFinal = clienteId ?? obj.clienteId;
 
       const [categoria, seguro] = await Promise.all([
         categoriaIdFinal ? CategoriaVeiculo.findByPk(categoriaIdFinal) : Promise.resolve(null),
         seguroIdFinal ? Seguro.findByPk(seguroIdFinal) : Promise.resolve(null),
       ]);
 
-      financeiroRecalculado = await calcularValoresFinanceiros({
+      const base = await calcularValoresFinanceiros({
         agenciaRetiradaId: agenciaRetiradaIdFinal,
         categoria,
         seguro,
         dataRetirada: retiradaFinal,
         dataDevolucao: devolucaoFinal,
       });
+      const taxaInspecao = await calcularTaxaInspecao(clienteIdFinal);
+      financeiroRecalculado = {
+        ...base,
+        taxaInspecao,
+        valorFinal: parseFloat(((base.valorFinal ?? 0) + taxaInspecao).toFixed(2)),
+      };
     }
 
     const patch = { dataRetirada, dataDevolucao, status, clienteId, categoriaVeiculoId, funcionarioId, seguroId, agenciaRetiradaId, agenciaDevolucaoId, ...financeiroRecalculado };

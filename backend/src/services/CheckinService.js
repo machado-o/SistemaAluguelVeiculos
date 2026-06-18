@@ -73,8 +73,17 @@ function validarCnhCondutor(cnhCondutor, reserva, erros) {
   if (cnhCondutor !== reserva.cliente.cnh) erros.push("A CNH informada não corresponde à CNH cadastrada para o cliente da reserva!");
 }
 
+// Regra km: quilometragem do check-in não pode ser inferior à quilometragem atual do veículo
+async function validarQuilometragemCheckin(quilometragemCheckin, veiculoId, erros) {
+  if (quilometragemCheckin === undefined || !veiculoId) return;
+  const veiculo = await Veiculo.findByPk(veiculoId, { attributes: ['quilometragem'] });
+  if (veiculo && parseFloat(quilometragemCheckin) < parseFloat(veiculo.quilometragem)) {
+    erros.push(`A quilometragem informada (${parseFloat(quilometragemCheckin).toLocaleString('pt-BR')} km) não pode ser inferior à quilometragem atual do veículo (${parseFloat(veiculo.quilometragem).toLocaleString('pt-BR')} km)!`);
+  }
+}
+
 // Orquestra todas as validações de negócio para create e update
-async function verificarRegrasDeNegocio({ cnhCondutor, reserva, veiculoId, isUpdate, erros }) {
+async function verificarRegrasDeNegocio({ cnhCondutor, quilometragemCheckin, reserva, veiculoId, isUpdate, erros }) {
   if (!isUpdate) {
     validarStatusReserva(reserva, erros);
     await validarDebitosPendentesCliente(reserva.clienteId, erros);
@@ -85,6 +94,7 @@ async function verificarRegrasDeNegocio({ cnhCondutor, reserva, veiculoId, isUpd
   if (!isUpdate) {
     const { veiculoFinalId, erros: errosVeiculo } = await resolverVeiculoParaCheckin(reserva, veiculoId);
     erros.push(...errosVeiculo);
+    await validarQuilometragemCheckin(quilometragemCheckin, veiculoFinalId, erros);
     return veiculoFinalId;
   }
   return veiculoId ?? null;
@@ -126,7 +136,7 @@ class CheckinService {
 
     let veiculoFinalId = veiculoId;
     if (reserva) {
-      veiculoFinalId = await verificarRegrasDeNegocio({ cnhCondutor, reserva, veiculoId, isUpdate: false, erros }) ?? veiculoFinalId;
+      veiculoFinalId = await verificarRegrasDeNegocio({ cnhCondutor, quilometragemCheckin, reserva, veiculoId, isUpdate: false, erros }) ?? veiculoFinalId;
     }
 
     erros.push(...await validarModel(Checkin.build({ dataCheckin, cnhCondutor, cnhValidade, quilometragemCheckin, reservaId, veiculoId: veiculoFinalId, funcionarioId })));

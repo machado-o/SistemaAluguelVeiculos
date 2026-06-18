@@ -353,10 +353,11 @@ function ReservaDetail({ id, onClose }) {
   const dias = r?.quantidadeDias ?? 0;
   const valorDiaria = parseFloat(r?.valorDiaria ?? 0);
   const valorSeguro = parseFloat(r?.valorSeguro ?? 0);
+  const taxaInspecao = parseFloat(r?.taxaInspecao ?? 0);
   const valorFinal = parseFloat(r?.valorFinal ?? 0);
   const subtotalDiarias = valorDiaria * dias;
   const valorBruto = subtotalDiarias + valorSeguro;
-  const descontoAplicado = Math.max(0, parseFloat((valorBruto - valorFinal).toFixed(2)));
+  const descontoAplicado = Math.max(0, parseFloat((valorBruto - (valorFinal - taxaInspecao)).toFixed(2)));
   const multas = r?.multas || [];
 
   return (
@@ -416,6 +417,14 @@ function ReservaDetail({ id, onClose }) {
                       {descontoAplicado > 0 ? `− ${money(descontoAplicado)}` : '—'}
                     </td>
                   </tr>
+                  {taxaInspecao > 0 && (
+                    <tr>
+                      <td className="td" style={{ color: '#DC2626' }}>
+                        Taxa de inspeção <span style={{ fontSize: 11, color: '#6B7280' }}>(histórico de avarias)</span>
+                      </td>
+                      <td className="td-r" style={{ color: '#DC2626' }}>+ {money(taxaInspecao)}</td>
+                    </tr>
+                  )}
                   <tr>
                     <td className="td font-semibold" style={{ borderTop: '2px solid #E7E5E4' }}>Valor final</td>
                     <td className="td-r font-semibold" style={{ borderTop: '2px solid #E7E5E4' }}>{money(valorFinal)}</td>

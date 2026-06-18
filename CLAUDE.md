@@ -80,13 +80,17 @@ Follow the pattern already established:
 - `cnhCondutor` must match `reserva.cliente.cnh` exactly
 - **Rule 2 — Pending debts:** Blocked if client has any multas with `status = 'Pendente'` — queries `Multa.count()`
 - **Rule 1 — Vehicle upgrade:** Queries `Veiculo.findAll()` for available vehicles in the requested category. If none found, queries `CategoriaVeiculo` for superior categories and picks the first with an available vehicle. If no upgrade is possible, blocks check-in.
+- **Rule — Odometer at check-in:** `quilometragemCheckin` must be >= `veiculo.quilometragem` (the vehicle's current recorded odometer, updated after each checkout). Validated after resolving the final vehicle (post-upgrade).
 - After creating: vehicle status → `'Reservado'`; reserva status → `'Confirmada'`
 
+**ReservaService.create():**
+- **Rule — Inspection fee:** Before creating, queries all completed checkouts for the client (via Reserva → Checkin → Checkout) and sums their avaria counts. If total > 3, `taxaInspecao = 150.00` is added to `valorFinal`. The `taxaInspecao` field is stored on the Reserva model and displayed as a separate line in the financial breakdown. Also recalculated on `update()` when financial data changes.
+
 **CheckoutService.create():**
-- `quilometragemCheckout` must be greater than `checkin.quilometragemCheckin`
+- `quilometragemCheckout` must be >= `checkin.quilometragemCheckin` (equal is allowed)
 - **Rule 1 — Odometer history:** Queries `MAX(quilometragemCheckout)` via JOIN `Checkout → Checkin` filtered by `veiculoId`. The new reading cannot be less than the maximum ever registered for that vehicle across all historical checkouts. Uses `raw: true` and `subQuery: false` to ensure correct aggregate SQL generation.
 - After creating: `veiculo.quilometragem` is updated to `quilometragemCheckout`; vehicle status → `'Disponível'`; reserva status → `'Concluída'`
-- **Rule 2 — Inspection fee:** Queries all checkins linked to the client's reservations, then finds all their checkouts and sums the avarias. If total > 3, applies `taxaInspecao = R$ 150.00`.
+- **Rule 2 — Inspection fee indicator:** `taxaInspecao` on the Checkout record indicates whether the client's total avaria count (historical + this checkout's avarias) exceeds 3. If yes, stores `R$ 150.00` as a warning that the **next reservation** will be charged. The actual charge is applied in `ReservaService.create()`, not here.
 - **Rule 3 — Multa from avarias:** If `avariaIds` is provided and the sum of avaria values is > 0, a `Multa` is created inside the same transaction. Value = `min(totalAvarias, reserva.seguro.franquia)` if the reservation had a seguro, or `totalAvarias` if it did not. The multa is created with `status: 'Pendente'` and linked to both `clienteId` and `reservaId`.
 
 **RelatoriosService** (read-only, raw SQL via `sequelize.query()`):
