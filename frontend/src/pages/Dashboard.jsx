@@ -48,7 +48,7 @@ function StatusBreakdown({ title, order, counts, entity, total }) {
             <div key={status} className="flex items-center gap-3">
               <div className="w-28 shrink-0"><StatusBadge status={status} entity={entity} /></div>
               <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ backgroundColor: '#F1F0EF' }}>
-                <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: '#D97706' }} />
+                <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: '#1B4FCE' }} />
               </div>
               <span className="text-sm font-medium tabular-nums w-8 text-right" style={{ fontFamily: "'JetBrains Mono', monospace", color: '#1F2937' }}>{n}</span>
             </div>
@@ -93,7 +93,7 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <Kpi to="/reservas" Icon={ClipboardList} label="Reservas pendentes" value={reservasPendentes.length} accent={reservasPendentes.length > 0 ? '#D97706' : '#111827'} />
+        <Kpi to="/reservas" Icon={ClipboardList} label="Reservas pendentes" value={reservasPendentes.length} accent={reservasPendentes.length > 0 ? '#F97316' : '#111827'} />
         <Kpi to="/checkins" Icon={LogIn} label="Check-ins hoje" value={checkinsHoje.length} />
         <Kpi to="/veiculos" Icon={Car} label="Veículos disponíveis" value={veiculosPorStatus['Disponível'] || 0} accent="#16A34A" />
         <Kpi to="/multas" Icon={FileWarning} label="Multas pendentes" value={multasPendentes.length} accent={multasPendentes.length > 0 ? '#DC2626' : '#111827'} />
@@ -110,7 +110,7 @@ export default function Dashboard() {
             <h2 className="font-display text-base font-semibold" style={{ color: '#111827' }}>
               Multas pendentes
             </h2>
-            <Link to="/multas" className="text-sm inline-flex items-center gap-1" style={{ color: '#D97706' }}>
+            <Link to="/multas" className="text-sm inline-flex items-center gap-1" style={{ color: '#1B4FCE' }}>
               Ver todas <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>

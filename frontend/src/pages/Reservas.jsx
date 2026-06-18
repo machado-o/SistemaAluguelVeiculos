@@ -209,7 +209,7 @@ export default function Reservas() {
                         )}
                         {row.status === 'Pendente' && (
                           <button className="btn-ghost p-1.5 text-xs" onClick={() => setCancelId(row.id)} title="Cancelar reserva">
-                            <AlertTriangle className="h-3.5 w-3.5" style={{ color: '#D97706' }} />
+                            <AlertTriangle className="h-3.5 w-3.5" style={{ color: '#F97316' }} />
                           </button>
                         )}
                         <button className="btn-ghost p-1.5" onClick={() => setDelId(row.id)} title="Remover">

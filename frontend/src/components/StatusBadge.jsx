@@ -1,10 +1,10 @@
 const DEFAULT_BADGES = {
-  Pendente:    { bg: '#FEF3C7', text: '#92400E', dot: '#D97706' },
+  Pendente:    { bg: '#FFF7ED', text: '#9A3412', dot: '#F97316' },
   Confirmada:  { bg: '#EFF6FF', text: '#1E40AF', dot: '#2563EB' },
   'Concluída': { bg: '#F0FDF4', text: '#166534', dot: '#16A34A' },
   Cancelada:   { bg: '#F3F4F6', text: '#374151', dot: '#6B7280' },
   'Disponível':{ bg: '#F0FDF4', text: '#166534', dot: '#16A34A' },
-  Reservado:   { bg: '#FEF3C7', text: '#92400E', dot: '#D97706' },
+  Reservado:   { bg: '#FFF7ED', text: '#9A3412', dot: '#F97316' },
   'Manutenção':{ bg: '#FEF2F2', text: '#991B1B', dot: '#DC2626' },
   Ativa:       { bg: '#F0FDF4', text: '#166534', dot: '#16A34A' },
   Inativa:     { bg: '#F3F4F6', text: '#374151', dot: '#6B7280' },

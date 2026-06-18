@@ -207,7 +207,7 @@ export default function Relatorios() {
                 onClick={() => switchReport(r.key)}
                 className={`w-full text-left px-4 py-3 text-sm transition-colors border-l-2 ${
                   active === r.key
-                    ? 'border-[#D97706] bg-amber-50 text-[#92400E] font-medium'
+                    ? 'border-[#1B4FCE] bg-blue-50 text-[#1B4FCE] font-medium'
                     : 'border-transparent hover:bg-stone-50 text-[#374151]'
                 }`}
               >

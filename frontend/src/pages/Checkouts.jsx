@@ -301,11 +301,11 @@ export default function Checkouts() {
 
           <div className="flex gap-6">
             <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={form.limpoInternamente} onChange={FB('limpoInternamente')} className="h-4 w-4 rounded" style={{ accentColor: '#D97706' }} />
+              <input type="checkbox" checked={form.limpoInternamente} onChange={FB('limpoInternamente')} className="h-4 w-4 rounded" style={{ accentColor: '#1B4FCE' }} />
               <span className="text-sm" style={{ color: '#374151' }}>Limpo internamente</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={form.limpoExternamente} onChange={FB('limpoExternamente')} className="h-4 w-4 rounded" style={{ accentColor: '#D97706' }} />
+              <input type="checkbox" checked={form.limpoExternamente} onChange={FB('limpoExternamente')} className="h-4 w-4 rounded" style={{ accentColor: '#1B4FCE' }} />
               <span className="text-sm" style={{ color: '#374151' }}>Limpo externamente</span>
             </label>
           </div>
@@ -388,11 +388,11 @@ export default function Checkouts() {
 
             <div className="flex gap-6">
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={editForm.limpoInternamente} onChange={EFB('limpoInternamente')} className="h-4 w-4 rounded" style={{ accentColor: '#D97706' }} />
+                <input type="checkbox" checked={editForm.limpoInternamente} onChange={EFB('limpoInternamente')} className="h-4 w-4 rounded" style={{ accentColor: '#1B4FCE' }} />
                 <span className="text-sm" style={{ color: '#374151' }}>Limpo internamente</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={editForm.limpoExternamente} onChange={EFB('limpoExternamente')} className="h-4 w-4 rounded" style={{ accentColor: '#D97706' }} />
+                <input type="checkbox" checked={editForm.limpoExternamente} onChange={EFB('limpoExternamente')} className="h-4 w-4 rounded" style={{ accentColor: '#1B4FCE' }} />
                 <span className="text-sm" style={{ color: '#374151' }}>Limpo externamente</span>
               </label>
             </div>
