@@ -2,7 +2,7 @@
 
 Sistema de Aluguel de Veiculos
 
-**Deploy:** https://sav-trinitydev-frontend.onrender.com
+**Deploy:** https://trinitydev.onrender.com
 
 ## Tecnologias
 
