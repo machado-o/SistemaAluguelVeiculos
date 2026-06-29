@@ -62,6 +62,15 @@ class Reserva extends Model {
           min: { args: [0], msg: "O valor final estimado não pode ser negativo!" }
         }
       },
+      taxaInspecao: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: false,
+        defaultValue: 0.00,
+        validate: {
+          isDecimal: { msg: "A taxa de inspeção deve ser um número decimal válido!" },
+          min: { args: [0], msg: "A taxa de inspeção não pode ser negativa!" }
+        }
+      },
       status: {
         type: DataTypes.ENUM('Pendente', 'Confirmada', 'Cancelada', 'Concluída'),
         allowNull: false,

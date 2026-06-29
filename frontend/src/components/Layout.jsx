@@ -35,7 +35,7 @@ function NavItem({ to, label, Icon, onClick, end }) {
       className={({ isActive }) =>
         `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
           isActive
-            ? 'text-[#D97706] font-medium border-l-2 border-[#D97706] pl-[10px] bg-white/5'
+            ? 'text-[#F97316] font-medium border-l-2 border-[#F97316] pl-[10px] bg-white/5'
             : 'text-[#9CA3AF] hover:text-white hover:bg-white/5 border-l-2 border-transparent pl-[10px]'
         }`
       }
@@ -74,15 +74,13 @@ export default function Layout({ children }) {
         }`}
         style={{ backgroundColor: '#111827' }}
       >
+        {/* Cabeçalho do sidebar — mesma altura h-14 de antes */}
         <div
-          className="flex items-center justify-between h-14 px-4 border-b"
+          className="flex items-center justify-between h-20 px-4 border-b"
           style={{ borderColor: 'rgba(255,255,255,0.08)' }}
         >
-          <div>
-            <span className="font-display text-white font-semibold text-lg tracking-tight">SAV</span>
-            <span className="block text-[10px] leading-none" style={{ color: '#6B7280' }}>
-              Aluguel de Veículos
-            </span>
+          <div className="flex items-center gap-2">
+            <img src="/logo.png" alt="Mova-se" style={{ height: 100, width: 'auto', display: 'block' }} />
           </div>
           <button
             className="lg:hidden transition-colors"
@@ -148,7 +146,7 @@ export default function Layout({ children }) {
               onClick={handleLogout}
               className="flex items-center gap-2 text-xs transition-colors w-full"
               style={{ color: '#6B7280' }}
-              onMouseOver={e => e.currentTarget.style.color = '#D97706'}
+              onMouseOver={e => e.currentTarget.style.color = '#F97316'}
               onMouseOut={e => e.currentTarget.style.color = '#6B7280'}
             >
               <LogOut className="h-3.5 w-3.5" />
@@ -171,7 +169,7 @@ export default function Layout({ children }) {
           >
             <Menu className="h-5 w-5" />
           </button>
-          <span className="font-display font-semibold" style={{ color: '#111827' }}>SAV</span>
+          <span className="font-display font-semibold" style={{ color: '#111827' }}>Mova-se</span>
         </header>
 
         <main className="flex-1 overflow-y-auto p-6">

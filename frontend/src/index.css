@@ -15,7 +15,7 @@
   }
 
   *:focus-visible {
-    outline: 2px solid #D97706;
+    outline: 2px solid #1B4FCE;
     outline-offset: 2px;
   }
 
@@ -30,10 +30,10 @@
 @layer components {
   .btn-primary {
     @apply inline-flex items-center gap-1.5 font-medium text-sm px-4 py-2 rounded-md transition-colors;
-    background-color: #D97706;
-    color: #451A03;
+    background-color: #1B4FCE;
+    color: #FFFFFF;
   }
-  .btn-primary:hover { background-color: #B45309; }
+  .btn-primary:hover { background-color: #163FA8; }
   .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
   .btn-secondary {
@@ -67,14 +67,14 @@
     border-color: #E7E5E4;
   }
   .field-input::placeholder { color: #9CA3AF; }
-  .field-input:focus { border-color: #D97706; outline: none; box-shadow: 0 0 0 1px #D97706; }
+  .field-input:focus { border-color: #1B4FCE; outline: none; box-shadow: 0 0 0 1px #1B4FCE; }
 
   .field-select {
     @apply w-full px-3 py-2 text-sm border rounded-md bg-white transition-colors;
     color: #1F2937;
     border-color: #E7E5E4;
   }
-  .field-select:focus { border-color: #D97706; outline: none; box-shadow: 0 0 0 1px #D97706; }
+  .field-select:focus { border-color: #1B4FCE; outline: none; box-shadow: 0 0 0 1px #1B4FCE; }
 
   .field-textarea {
     @apply w-full px-3 py-2 text-sm border rounded-md bg-white transition-colors resize-y;
@@ -82,7 +82,7 @@
     border-color: #E7E5E4;
     min-height: 80px;
   }
-  .field-textarea:focus { border-color: #D97706; outline: none; box-shadow: 0 0 0 1px #D97706; }
+  .field-textarea:focus { border-color: #1B4FCE; outline: none; box-shadow: 0 0 0 1px #1B4FCE; }
 
   .field-error {
     @apply text-red-600 text-xs mt-1;
@@ -159,8 +159,8 @@
 
   .callout-amber {
     @apply flex items-start gap-2 px-3 py-2 rounded-md text-sm;
-    background-color: #FFFBEB;
-    color: #92400E;
-    border: 1px solid #FDE68A;
+    background-color: #FFF7ED;
+    color: #9A3412;
+    border: 1px solid #FDBA74;
   }
 }

@@ -12,10 +12,10 @@ import { validarModel } from "./_validarModel.js";
 
 const TAXA_INSPECAO = 150.00;
 
-// Regra 1: quilometragem de devolução deve ser maior que a do check-in e não inferior à maior já registrada para o veículo
+// Regra 1: quilometragem de devolução deve ser >= a do check-in e não inferior à maior já registrada para o veículo
 async function validarQuilometragem(quilometragemCheckout, checkin, erros) {
-  if (parseFloat(quilometragemCheckout) <= parseFloat(checkin.quilometragemCheckin)) {
-    erros.push("A quilometragem de devolução deve ser maior que a quilometragem registrada no check-in!");
+  if (parseFloat(quilometragemCheckout) < parseFloat(checkin.quilometragemCheckin)) {
+    erros.push("A quilometragem de devolução não pode ser inferior à quilometragem registrada no check-in!");
     return;
   }
 
@@ -38,23 +38,29 @@ async function validarQuilometragem(quilometragemCheckout, checkin, erros) {
     erros.push("A quilometragem de devolução não pode ser inferior à maior quilometragem já registrada para este veículo!");
 }
 
-// Regra 2: clientes com mais de 3 avarias em aluguéis anteriores pagam taxa de inspeção de R$ 150,00
-async function calcularTaxaInspecao(clienteId) {
-  const checkinsDoCliente = await Checkin.findAll({
-    include: [{ model: Reserva, as: "reserva", required: true, where: { clienteId }, attributes: [] }],
-    attributes: ["id"],
-  });
+// Indica se, após este checkout, o cliente terá > 3 avarias no histórico
+// (sinaliza que a PRÓXIMA reserva será cobrada a taxa de inspeção)
+async function calcularTaxaInspecao(clienteId, avariasDaVez) {
+  const reservasDoCliente = await Reserva.findAll({ where: { clienteId }, attributes: ['id'], raw: true });
+  let totalHistorico = 0;
 
-  const idsCheckins = checkinsDoCliente.map(c => c.id);
-  if (idsCheckins.length === 0) return 0;
+  if (reservasDoCliente.length > 0) {
+    const checkinsDoCliente = await Checkin.findAll({
+      where: { reservaId: { [Op.in]: reservasDoCliente.map(r => r.id) } },
+      attributes: ['id'],
+      raw: true,
+    });
 
-  const checkoutsAnteriores = await Checkout.findAll({
-    where: { checkinId: { [Op.in]: idsCheckins } },
-    include: [{ model: Avaria, as: "avarias" }],
-  });
+    if (checkinsDoCliente.length > 0) {
+      const checkoutsAnteriores = await Checkout.findAll({
+        where: { checkinId: { [Op.in]: checkinsDoCliente.map(c => c.id) } },
+        include: [{ model: Avaria, as: 'avarias' }],
+      });
+      totalHistorico = checkoutsAnteriores.reduce((sum, co) => sum + co.avarias.length, 0);
+    }
+  }
 
-  const totalAvarias = checkoutsAnteriores.reduce((total, co) => total + co.avarias.length, 0);
-  return totalAvarias > 3 ? TAXA_INSPECAO : 0;
+  return (totalHistorico + avariasDaVez) > 3 ? TAXA_INSPECAO : 0;
 }
 
 // Regra: data de devolução não pode ser anterior à data do check-in
@@ -82,7 +88,7 @@ class CheckoutService {
   // Evita { all: true, nested: true }, que expande toda a árvore de relações e gera uma query gigante.
   static get includeCompleto() {
     return [
-      { association: 'checkin', include: ['veiculo'] },
+      { association: 'checkin', include: ['veiculo', { association: 'reserva', include: ['cliente'] }] },
       'funcionario',
       'avarias',
     ];
@@ -117,7 +123,7 @@ class CheckoutService {
     if (erros.length > 0) throw erros.join(" ");
 
     const reserva = await Reserva.findByPk(checkin.reservaId, { include: [{ model: Seguro, as: 'seguro' }] });
-    const taxaInspecao = await calcularTaxaInspecao(reserva.clienteId);
+    const taxaInspecao = await calcularTaxaInspecao(reserva.clienteId, (avariaIds || []).length);
 
     return await sequelize.transaction(async (t) => {
       const obj = await Checkout.create({ dataCheckout, quilometragemCheckout, nivelCombustivel, condicaoPneus, condicaoPalhetas, limpoInternamente, limpoExternamente, observacoes, checkinId, funcionarioId, taxaInspecao }, { transaction: t });

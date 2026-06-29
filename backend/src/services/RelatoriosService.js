@@ -28,12 +28,18 @@ function parsePaginacao(query) {
   return { pagina, itensPorPagina, deslocamento };
 }
 
-// Monta o envelope de resposta com metadados de paginação
-function montarResposta(rows, pagina, itensPorPagina) {
+// Monta o envelope de resposta com metadados de paginação.
+// extraFields: campos extras a extrair da primeira linha e remover de cada linha (ex: totalizadores globais).
+function montarResposta(rows, pagina, itensPorPagina, extraFields = []) {
   const total = rows.length > 0 ? parseInt(rows[0].totalRegistros) : 0;
   const totalPaginas = Math.ceil(total / itensPorPagina) || 1;
-  const dados = rows.map(({ totalRegistros, ...rest }) => rest);
-  return { dados, paginacao: { pagina, itensPorPagina, total, totalPaginas } };
+  const extras = {};
+  for (const field of extraFields) {
+    extras[field] = rows.length > 0 ? parseInt(rows[0][field]) : 0;
+  }
+  const strip = new Set(['totalRegistros', ...extraFields]);
+  const dados = rows.map(row => Object.fromEntries(Object.entries(row).filter(([k]) => !strip.has(k))));
+  return { dados, paginacao: { pagina, itensPorPagina, total, totalPaginas }, ...extras };
 }
 
 class RelatoriosService {
@@ -66,6 +72,8 @@ class RelatoriosService {
         COUNT(CASE WHEN r.status = 'Cancelada'  THEN 1 END)       AS "reservasCanceladas",
         COUNT(CASE WHEN r.status = 'Pendente'   THEN 1 END)       AS "reservasPendentes",
         COUNT(CASE WHEN r.status = 'Confirmada' THEN 1 END)       AS "reservasConfirmadas",
+        SUM(COUNT(r.id)) OVER()                                   AS "totalReservasGlobal",
+        SUM(SUM(r.valor_final)) OVER()                            AS "totalValorGlobal",
         COUNT(*) OVER()                                           AS "totalRegistros"
       FROM reservas r
       INNER JOIN funcionarios f ON r.funcionario_id = f.id
@@ -82,7 +90,7 @@ class RelatoriosService {
       }
     );
 
-    return montarResposta(rows, pagina, itensPorPagina);
+    return montarResposta(rows, pagina, itensPorPagina, ['totalReservasGlobal', 'totalValorGlobal']);
   }
 
   // 2. Reservas por categoria de veículo em um período informado.
@@ -111,6 +119,8 @@ class RelatoriosService {
         COUNT(DISTINCT r.funcionario_id)                          AS "funcionariosQueReservaram",
         COUNT(CASE WHEN r.status = 'Concluída' THEN 1 END)        AS "reservasConcluidas",
         COUNT(CASE WHEN r.status = 'Cancelada' THEN 1 END)        AS "reservasCanceladas",
+        SUM(COUNT(r.id)) OVER()                                   AS "totalReservasGlobal",
+        SUM(SUM(r.valor_final)) OVER()                            AS "totalValorGlobal",
         COUNT(*) OVER()                                           AS "totalRegistros"
       FROM reservas r
       INNER JOIN "categoriasVeiculos" cv ON r.categoria_veiculo_id = cv.id
@@ -126,7 +136,7 @@ class RelatoriosService {
       }
     );
 
-    return montarResposta(rows, pagina, itensPorPagina);
+    return montarResposta(rows, pagina, itensPorPagina, ['totalReservasGlobal', 'totalValorGlobal']);
   }
 
   // LORRAYNE
@@ -166,6 +176,7 @@ class RelatoriosService {
           ORDER BY COUNT(ci2.id) DESC
           LIMIT 1
         )                                  AS "clienteComMaisCheckins",
+        SUM(COUNT(ci.id)) OVER()           AS "totalCheckinsGlobal",
         COUNT(*) OVER()                    AS "totalRegistros"
       FROM checkins ci
       INNER JOIN reservas r ON ci.reserva_id        = r.id
@@ -182,7 +193,7 @@ class RelatoriosService {
       }
     );
 
-    return montarResposta(rows, pagina, itensPorPagina);
+    return montarResposta(rows, pagina, itensPorPagina, ['totalCheckinsGlobal']);
   }
 
   // 4. Check-ins agrupados por veículo em um período informado.
@@ -221,6 +232,7 @@ class RelatoriosService {
           ORDER BY COUNT(ci2.id) DESC
           LIMIT 1
         )                                                             AS "funcionarioComMaisCheckins",
+        SUM(COUNT(ci.id)) OVER()                                      AS "totalCheckinsGlobal",
         COUNT(*) OVER()                                               AS "totalRegistros"
       FROM checkins ci
       INNER JOIN veiculos v              ON ci.veiculo_id          = v.id
@@ -238,7 +250,7 @@ class RelatoriosService {
       }
     );
 
-    return montarResposta(rows, pagina, itensPorPagina);
+    return montarResposta(rows, pagina, itensPorPagina, ['totalCheckinsGlobal']);
   }
 
   // JULIA
@@ -268,6 +280,8 @@ class RelatoriosService {
         ROUND(COALESCE(AVG(av.valor), 0)::numeric, 2)             AS "valorMedioAvaria",
         MAX(av.valor)                                             AS "maiorValorAvaria",
         STRING_AGG(DISTINCT av.nome, ', ' ORDER BY av.nome)       AS "tiposAvarias",
+        SUM(COUNT(ca.avaria_id)) OVER()                           AS "totalAvariasGlobal",
+        SUM(SUM(av.valor)) OVER()                                 AS "totalValorAvariasGlobal",
         COUNT(*) OVER()                                           AS "totalRegistros"
       FROM checkouts co
       INNER JOIN checkins ci             ON co.checkin_id           = ci.id
@@ -287,7 +301,7 @@ class RelatoriosService {
       }
     );
 
-    return montarResposta(rows, pagina, itensPorPagina);
+    return montarResposta(rows, pagina, itensPorPagina, ['totalAvariasGlobal', 'totalValorAvariasGlobal']);
   }
 
   // 6. Check-outs com multas aplicadas a clientes em um período.
@@ -315,6 +329,8 @@ class RelatoriosService {
         COUNT(CASE WHEN m.status = 'Paga'     THEN 1 END)                          AS "multasPagas",
         COALESCE(SUM(CASE WHEN m.status = 'Pendente' THEN m.valor ELSE 0 END), 0)  AS "valorMultasPendentes",
         COALESCE(SUM(co.taxa_inspecao), 0)                                          AS "totalTaxasInspecao",
+        SUM(COUNT(m.id)) OVER()                                                     AS "totalMultasGlobal",
+        SUM(SUM(m.valor)) OVER()                                                    AS "totalValorMultasGlobal",
         COUNT(*) OVER()                                                             AS "totalRegistros"
       FROM checkouts co
       INNER JOIN checkins ci ON co.checkin_id = ci.id
@@ -333,7 +349,7 @@ class RelatoriosService {
       }
     );
 
-    return montarResposta(rows, pagina, itensPorPagina);
+    return montarResposta(rows, pagina, itensPorPagina, ['totalMultasGlobal', 'totalValorMultasGlobal']);
   }
 
 }

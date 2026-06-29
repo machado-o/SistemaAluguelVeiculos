@@ -33,7 +33,7 @@ function toISO(v) {
 
 export default function Checkouts() {
   const { data, loading, refetch } = useCrud('/checkouts');
-  const list = useListView(data, r => `#${r.id} #${r.checkinId} ${r.checkin?.veiculo?.placa ?? ''} ${r.funcionario?.nome ?? ''} ${r.nivelCombustivel}`);
+  const list = useListView(data, r => `#${r.id} #${r.checkinId} ${r.checkin?.veiculo?.placa ?? ''} ${r.checkin?.reserva?.cliente?.nome ?? ''} ${r.funcionario?.nome ?? ''} ${r.nivelCombustivel}`);
   const { data: checkins } = useCrud('/checkins');
   const { data: funcionarios } = useCrud('/funcionarios');
   const { data: avarias } = useCrud('/avarias');
@@ -65,8 +65,8 @@ export default function Checkouts() {
 
   const validateKm = () => {
     if (!selectedCheckin || !form.quilometragemCheckout) return;
-    if (parseFloat(form.quilometragemCheckout) <= parseFloat(selectedCheckin.quilometragemCheckin)) {
-      setKmError(`Deve ser maior que ${parseFloat(selectedCheckin.quilometragemCheckin).toLocaleString('pt-BR')} km (quilometragem no check-in).`);
+    if (parseFloat(form.quilometragemCheckout) < parseFloat(selectedCheckin.quilometragemCheckin)) {
+      setKmError(`Deve ser maior ou igual a ${parseFloat(selectedCheckin.quilometragemCheckin).toLocaleString('pt-BR')} km (quilometragem no check-in).`);
     } else {
       setKmError('');
     }
@@ -180,12 +180,13 @@ export default function Checkouts() {
                   <th className="th">ID</th>
                   <th className="th">Check-in</th>
                   <th className="th">Placa</th>
+                  <th className="th">Cliente</th>
                   <th className="th">Funcionário</th>
                   <th className="th">Data check-out</th>
                   <th className="th-r">Km devolução</th>
                   <th className="th">Combustível</th>
                   <th className="th-r">Avarias</th>
-                  <th className="th-r">Taxa inspeção</th>
+                  <th className="th-r">Taxa inspeção (próx. reserva)</th>
                   <th className="th" style={{ width: 90 }}></th>
                 </tr>
               </thead>
@@ -195,6 +196,7 @@ export default function Checkouts() {
                     <td className="td-mono" style={{ color: '#6B7280' }}>#{row.id}</td>
                     <td className="td-mono" style={{ color: '#6B7280' }}>#{row.checkinId}</td>
                     <td className="td-mono font-semibold">{row.checkin?.veiculo?.placa || '—'}</td>
+                    <td className="td">{row.checkin?.reserva?.cliente?.nome || '—'}</td>
                     <td className="td">{row.funcionario?.nome || '—'}</td>
                     <td className="td">{fmt(row.dataCheckout)}</td>
                     <td className="td-r">{parseFloat(row.quilometragemCheckout).toLocaleString('pt-BR')} km</td>
@@ -248,7 +250,7 @@ export default function Checkouts() {
               <span>
                 Quilometragem no check-in: <strong style={{ fontFamily: "'JetBrains Mono', monospace" }}>
                   {parseFloat(selectedCheckin.quilometragemCheckin).toLocaleString('pt-BR')} km
-                </strong> — a devolução deve ser maior que este valor.
+                </strong> — a devolução deve ser maior ou igual a este valor.
               </span>
             </div>
           )}
@@ -301,11 +303,11 @@ export default function Checkouts() {
 
           <div className="flex gap-6">
             <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={form.limpoInternamente} onChange={FB('limpoInternamente')} className="h-4 w-4 rounded" style={{ accentColor: '#D97706' }} />
+              <input type="checkbox" checked={form.limpoInternamente} onChange={FB('limpoInternamente')} className="h-4 w-4 rounded" style={{ accentColor: '#1B4FCE' }} />
               <span className="text-sm" style={{ color: '#374151' }}>Limpo internamente</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={form.limpoExternamente} onChange={FB('limpoExternamente')} className="h-4 w-4 rounded" style={{ accentColor: '#D97706' }} />
+              <input type="checkbox" checked={form.limpoExternamente} onChange={FB('limpoExternamente')} className="h-4 w-4 rounded" style={{ accentColor: '#1B4FCE' }} />
               <span className="text-sm" style={{ color: '#374151' }}>Limpo externamente</span>
             </label>
           </div>
@@ -328,7 +330,7 @@ export default function Checkouts() {
                   </label>
                 ))}
               </div>
-              <p className="field-hint">Avarias geram multa automática. Taxa de inspeção de R$ 150,00 se o cliente tiver mais de 3 avarias no histórico.</p>
+              <p className="field-hint">Avarias geram multa automática. Se o total de avarias do cliente ultrapassar 3, uma taxa de inspeção de R$ 150,00 será cobrada na <strong>próxima reserva</strong>.</p>
             </div>
           )}
 
@@ -388,11 +390,11 @@ export default function Checkouts() {
 
             <div className="flex gap-6">
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={editForm.limpoInternamente} onChange={EFB('limpoInternamente')} className="h-4 w-4 rounded" style={{ accentColor: '#D97706' }} />
+                <input type="checkbox" checked={editForm.limpoInternamente} onChange={EFB('limpoInternamente')} className="h-4 w-4 rounded" style={{ accentColor: '#1B4FCE' }} />
                 <span className="text-sm" style={{ color: '#374151' }}>Limpo internamente</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={editForm.limpoExternamente} onChange={EFB('limpoExternamente')} className="h-4 w-4 rounded" style={{ accentColor: '#D97706' }} />
+                <input type="checkbox" checked={editForm.limpoExternamente} onChange={EFB('limpoExternamente')} className="h-4 w-4 rounded" style={{ accentColor: '#1B4FCE' }} />
                 <span className="text-sm" style={{ color: '#374151' }}>Limpo externamente</span>
               </label>
             </div>
@@ -446,8 +448,10 @@ function CheckoutDetail({ id, onClose }) {
               <Field label="Data do check-out">{dateTime(co.dataCheckout)}</Field>
               <Field label="Km no check-in" mono>{km(co.checkin?.quilometragemCheckin)}</Field>
               <Field label="Km na devolução" mono>{km(co.quilometragemCheckout)}</Field>
-              <Field label="Taxa de inspeção">
-                {taxa > 0 ? <span style={{ color: '#DC2626' }}>{money(taxa)}</span> : '—'}
+              <Field label="Taxa de inspeção (próx. reserva)">
+                {taxa > 0
+                  ? <span style={{ color: '#DC2626' }} title="O cliente acumulou mais de 3 avarias — será cobrado R$ 150,00 na próxima reserva">{money(taxa)}</span>
+                  : '—'}
               </Field>
             </FieldGrid>
           </Section>

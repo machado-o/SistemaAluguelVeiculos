@@ -157,7 +157,7 @@ export default function Seguros() {
                       checked={form.coberturaIds.includes(c.id)}
                       onChange={() => toggleCobertura(c.id)}
                       className="h-4 w-4 rounded"
-                      style={{ accentColor: '#D97706' }}
+                      style={{ accentColor: '#1B4FCE' }}
                     />
                     <span className="text-sm" style={{ color: '#374151' }}>{c.nome}</span>
                     <span className="text-xs ml-auto" style={{ color: '#6B7280' }}>máx R$ {parseFloat(c.valorIndenizacaoMax).toFixed(2)}</span>
