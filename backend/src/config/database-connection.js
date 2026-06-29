@@ -42,7 +42,7 @@ Reserva.associate(sequelize.models);
 Seguro.associate(sequelize.models);
 Veiculo.associate(sequelize.models);
 
-// databaseInserts(); // comentar quando estiver em ambiente de produção (não criar tabelas e não inserir registros de teste)
+databaseInserts(); // comentar quando estiver em ambiente de produção (não criar tabelas e não inserir registros de teste)
 
 function databaseInserts() {
     (async () => {
