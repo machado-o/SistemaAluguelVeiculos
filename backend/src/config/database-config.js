@@ -29,10 +29,10 @@ export const databaseConfig = {
 
 export const databaseConfig = {
   dialect: 'postgres',
-  host:     process.env.DB_HOST || 'dpg-d8d3kvt7vvec73ftakb0-a.oregon-postgres.render.com',
+  host:     process.env.DB_HOST || 'dpg-d91etrkm0tmc738hc05g-a.oregon-postgres.render.com',
   username: process.env.DB_USER || 'sav_trinitydev_db_user',
-  password: process.env.DB_PASS || 'ppETReCruy5tVrHk8poCezdIbN94GLb4',
-  database: process.env.DB_NAME || 'sav_trinitydev_db_c260',
+  password: process.env.DB_PASS || 'ZFgjRn677BglQt5hGpvwpNfu1I3VfUAm',
+  database: process.env.DB_NAME || 'sav_trinitydev_db_015s',
   define: {
     timestamps: true,
     freezeTableName: true,
