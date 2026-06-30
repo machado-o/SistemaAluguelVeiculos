@@ -264,6 +264,22 @@ export default function Checkins() {
             </div>
           )}
 
+          {(() => {
+            const selectedVeiculo = veiculosDisponiveis.find(v => v.id === parseInt(form.veiculoId));
+            return selectedVeiculo ? (
+              <div className="callout-info">
+                <Info className="h-4 w-4 shrink-0 mt-0.5" />
+                <span>
+                  Quilometragem atual do veículo:{' '}
+                  <strong style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                    {parseFloat(selectedVeiculo.quilometragem).toLocaleString('pt-BR')} km
+                  </strong>{' '}
+                  — a saída deve ser maior ou igual a este valor.
+                </span>
+              </div>
+            ) : null;
+          })()}
+
           <div>
             <label className="field-label">Funcionário responsável</label>
             <select className="field-select" value={form.funcionarioId} onChange={F('funcionarioId')}>

@@ -14,8 +14,8 @@ const TAXA_INSPECAO = 150.00;
 
 // Regra 1: quilometragem de devolução deve ser >= a do check-in e não inferior à maior já registrada para o veículo
 async function validarQuilometragem(quilometragemCheckout, checkin, erros) {
-  if (parseFloat(quilometragemCheckout) < parseFloat(checkin.quilometragemCheckin)) {
-    erros.push("A quilometragem de devolução não pode ser inferior à quilometragem registrada no check-in!");
+  if (parseFloat(quilometragemCheckout) <= parseFloat(checkin.quilometragemCheckin)) {
+    erros.push("A quilometragem de devolução deve ser superior à quilometragem registrada no check-in (o veículo saiu da loja)!");
     return;
   }
 

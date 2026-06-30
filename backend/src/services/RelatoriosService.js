@@ -35,7 +35,7 @@ function montarResposta(rows, pagina, itensPorPagina, extraFields = []) {
   const totalPaginas = Math.ceil(total / itensPorPagina) || 1;
   const extras = {};
   for (const field of extraFields) {
-    extras[field] = rows.length > 0 ? parseInt(rows[0][field]) : 0;
+    extras[field] = rows.length > 0 ? parseFloat(rows[0][field]) : 0;
   }
   const strip = new Set(['totalRegistros', ...extraFields]);
   const dados = rows.map(row => Object.fromEntries(Object.entries(row).filter(([k]) => !strip.has(k))));
@@ -255,9 +255,9 @@ class RelatoriosService {
 
   // JULIA
 
-  // 5. Check-outs com avarias registradas agrupadas por veículo em um período informado.
-  // Filtros: Veículo (opcional) e Data (obrigatório).
-  // Totalização: Quantidade e valor de avarias de um veículo.
+  // 5. Check-outs com avarias — um registro por checkout, exibindo veículo, reserva e avarias.
+  // Filtros: Veículo (opcional) e Data (obrigatório, data do checkout).
+  // Totalização: Quantidade e valor global de avarias no período.
   static async findCheckoutsComAvariasPorVeiculo(req) {
     const { inicio, termino, veiculoId } = req.query;
 
@@ -269,31 +269,38 @@ class RelatoriosService {
 
     const rows = await sequelize.query(
       `SELECT
-        v.id                                                      AS "veiculoId",
+        ci.id                                                        AS "checkinId",
         v.placa,
         v.marca,
         v.modelo,
-        cv.nome                                                   AS "categoriaNome",
-        COUNT(DISTINCT co.id)                                     AS "quantidadeCheckouts",
-        COUNT(ca.avaria_id)                                       AS "quantidadeAvarias",
-        COALESCE(SUM(av.valor), 0)                                AS "valorTotalAvarias",
-        ROUND(COALESCE(AVG(av.valor), 0)::numeric, 2)             AS "valorMedioAvaria",
-        MAX(av.valor)                                             AS "maiorValorAvaria",
-        STRING_AGG(DISTINCT av.nome, ', ' ORDER BY av.nome)       AS "tiposAvarias",
-        SUM(COUNT(ca.avaria_id)) OVER()                           AS "totalAvariasGlobal",
-        SUM(SUM(av.valor)) OVER()                                 AS "totalValorAvariasGlobal",
-        COUNT(*) OVER()                                           AS "totalRegistros"
+        ci.data_checkin                                              AS "dataCheckin",
+        co.data_checkout                                             AS "dataCheckout",
+        co.quilometragem_checkout                                    AS "quilometragemCheckout",
+        COUNT(ca.avaria_id)                                          AS "quantidadeAvarias",
+        STRING_AGG(av.nome, ', ' ORDER BY av.nome)                   AS "descricaoAvarias",
+        COALESCE(SUM(av.valor), 0)                                   AS "valorTotalAvarias",
+        s.nome                                                       AS "seguroContratado",
+        s.franquia                                                   AS "franquiaSeguro",
+        (
+          SELECT COALESCE(SUM(m2.valor), 0)
+          FROM multas m2
+          WHERE m2.reserva_id = r.id
+        )                                                            AS "valorMulta",
+        SUM(COUNT(ca.avaria_id)) OVER()                              AS "totalAvariasGlobal",
+        SUM(SUM(av.valor)) OVER()                                    AS "totalValorAvariasGlobal",
+        COUNT(*) OVER()                                              AS "totalRegistros"
       FROM checkouts co
       INNER JOIN checkins ci             ON co.checkin_id           = ci.id
       INNER JOIN veiculos v              ON ci.veiculo_id           = v.id
-      INNER JOIN "categoriasVeiculos" cv ON v.categoria_veiculo_id  = cv.id
+      INNER JOIN reservas r              ON ci.reserva_id           = r.id
+      LEFT JOIN seguros s                ON r.seguro_id             = s.id
       INNER JOIN checkout_avaria ca      ON ca.checkout_id          = co.id
       INNER JOIN avarias av              ON av.id                   = ca.avaria_id
       WHERE co.data_checkout >= :inicio
         AND co.data_checkout <= :termino
         ${filtroVeiculo}
-      GROUP BY v.id, v.placa, v.marca, v.modelo, cv.nome
-      ORDER BY "quantidadeAvarias" DESC
+      GROUP BY ci.id, v.placa, v.marca, v.modelo, ci.data_checkin, co.data_checkout, co.quilometragem_checkout, r.id, s.nome, s.franquia
+      ORDER BY co.data_checkout DESC
       LIMIT :limite OFFSET :deslocamento`,
       {
         replacements: { inicio, termino, veiculoId: veiculoId ?? null, limite: itensPorPagina, deslocamento },
@@ -304,9 +311,9 @@ class RelatoriosService {
     return montarResposta(rows, pagina, itensPorPagina, ['totalAvariasGlobal', 'totalValorAvariasGlobal']);
   }
 
-  // 6. Check-outs com multas aplicadas a clientes em um período.
-  // Filtros: Cliente (opcional) e Data (obrigatório, baseado na data do checkout).
-  // Totalização: Quantidade e valor de multas de um cliente.
+  // 6. Multas por cliente — um registro por multa, com veículo, avarias e seguro associados.
+  // Filtros: Cliente (opcional) e Data (obrigatório, baseado na data de emissão da multa).
+  // Totalização: Quantidade e valor global de multas no período.
   static async findCheckoutsComMultasPorCliente(req) {
     const { inicio, termino, clienteId } = req.query;
 
@@ -314,34 +321,41 @@ class RelatoriosService {
     if (erros.length > 0) throw erros.join(" ");
 
     const { pagina, itensPorPagina, deslocamento } = parsePaginacao(req.query);
-    const filtroCliente = clienteId ? `AND cl.id = :clienteId` : "";
+    const filtroCliente = clienteId ? `AND m.cliente_id = :clienteId` : "";
 
     const rows = await sequelize.query(
       `SELECT
+        m.id                                                                       AS "multaId",
         cl.id                                                                      AS "clienteId",
         cl.nome                                                                    AS "clienteNome",
-        cl.cpf,
-        cl.email,
-        COUNT(DISTINCT co.id)                                                      AS "quantidadeCheckouts",
-        COUNT(m.id)                                                                AS "quantidadeMultas",
-        COALESCE(SUM(m.valor), 0)                                                  AS "valorTotalMultas",
-        COUNT(CASE WHEN m.status = 'Pendente' THEN 1 END)                          AS "multasPendentes",
-        COUNT(CASE WHEN m.status = 'Paga'     THEN 1 END)                          AS "multasPagas",
-        COALESCE(SUM(CASE WHEN m.status = 'Pendente' THEN m.valor ELSE 0 END), 0)  AS "valorMultasPendentes",
-        COALESCE(SUM(co.taxa_inspecao), 0)                                          AS "totalTaxasInspecao",
-        SUM(COUNT(m.id)) OVER()                                                     AS "totalMultasGlobal",
-        SUM(SUM(m.valor)) OVER()                                                    AS "totalValorMultasGlobal",
-        COUNT(*) OVER()                                                             AS "totalRegistros"
-      FROM checkouts co
-      INNER JOIN checkins ci ON co.checkin_id = ci.id
-      INNER JOIN reservas r  ON ci.reserva_id = r.id
-      INNER JOIN clientes cl ON r.cliente_id  = cl.id
-      INNER JOIN multas m    ON m.reserva_id  = r.id
-      WHERE co.data_checkout >= :inicio
-        AND co.data_checkout <= :termino
+        m.data_emissao                                                             AS "dataEmissao",
+        m.descricao,
+        m.valor                                                                    AS "valorMulta",
+        m.status                                                                   AS "statusMulta",
+        v.placa,
+        v.marca,
+        v.modelo,
+        s.nome                                                                     AS "seguroContratado",
+        s.franquia                                                                 AS "franquia",
+        STRING_AGG(DISTINCT av.nome, ', ' ORDER BY av.nome)                        AS "descricaoAvarias",
+        COUNT(*) OVER()                                                            AS "totalMultasGlobal",
+        SUM(SUM(m.valor)) OVER()                                                   AS "totalValorMultasGlobal",
+        COUNT(*) OVER()                                                            AS "totalRegistros"
+      FROM multas m
+      INNER JOIN clientes cl       ON m.cliente_id    = cl.id
+      LEFT JOIN reservas r         ON m.reserva_id    = r.id
+      LEFT JOIN seguros s          ON r.seguro_id     = s.id
+      LEFT JOIN checkins ci        ON ci.reserva_id   = r.id
+      LEFT JOIN checkouts co       ON co.checkin_id   = ci.id
+      LEFT JOIN checkout_avaria ca ON ca.checkout_id  = co.id
+      LEFT JOIN avarias av         ON av.id           = ca.avaria_id
+      LEFT JOIN veiculos v         ON ci.veiculo_id   = v.id
+      WHERE m.data_emissao >= :inicio
+        AND m.data_emissao <= :termino
         ${filtroCliente}
-      GROUP BY cl.id, cl.nome, cl.cpf, cl.email
-      ORDER BY "valorTotalMultas" DESC
+      GROUP BY m.id, cl.id, cl.nome, m.data_emissao, m.descricao, m.valor, m.status,
+               v.placa, v.marca, v.modelo, s.nome, s.franquia
+      ORDER BY cl.nome, m.data_emissao DESC
       LIMIT :limite OFFSET :deslocamento`,
       {
         replacements: { inicio, termino, clienteId: clienteId ?? null, limite: itensPorPagina, deslocamento },

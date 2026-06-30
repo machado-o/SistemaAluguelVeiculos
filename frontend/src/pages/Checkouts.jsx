@@ -65,8 +65,8 @@ export default function Checkouts() {
 
   const validateKm = () => {
     if (!selectedCheckin || !form.quilometragemCheckout) return;
-    if (parseFloat(form.quilometragemCheckout) < parseFloat(selectedCheckin.quilometragemCheckin)) {
-      setKmError(`Deve ser maior ou igual a ${parseFloat(selectedCheckin.quilometragemCheckin).toLocaleString('pt-BR')} km (quilometragem no check-in).`);
+    if (parseFloat(form.quilometragemCheckout) <= parseFloat(selectedCheckin.quilometragemCheckin)) {
+      setKmError(`Deve ser maior do que ${parseFloat(selectedCheckin.quilometragemCheckin).toLocaleString('pt-BR')} km (quilometragem no check-in).`);
     } else {
       setKmError('');
     }
@@ -250,7 +250,7 @@ export default function Checkouts() {
               <span>
                 Quilometragem no check-in: <strong style={{ fontFamily: "'JetBrains Mono', monospace" }}>
                   {parseFloat(selectedCheckin.quilometragemCheckin).toLocaleString('pt-BR')} km
-                </strong> — a devolução deve ser maior ou igual a este valor.
+                </strong> — a devolução deve ser maior do que este valor.
               </span>
             </div>
           )}

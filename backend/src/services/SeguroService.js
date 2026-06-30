@@ -16,9 +16,11 @@ class SeguroService {
 
   static async create(req) {
     const { nome, empresaSeguradora, descricao, valorDiariaAdicional, franquia, coberturaIds } = req.body;
+    if (!coberturaIds || coberturaIds.length === 0)
+      throw 'Um seguro deve ter pelo menos uma cobertura cadastrada!';
     return await sequelize.transaction(async (t) => {
       const obj = await Seguro.create({ nome, empresaSeguradora, descricao, valorDiariaAdicional, franquia }, { transaction: t });
-      if (coberturaIds) await obj.setCoberturas(coberturaIds, { transaction: t });
+      await obj.setCoberturas(coberturaIds, { transaction: t });
       return await Seguro.findByPk(obj.id, { include: { all: true }, transaction: t });
     });
   }
@@ -33,7 +35,10 @@ class SeguroService {
       Object.keys(patch).forEach((k) => patch[k] === undefined && delete patch[k]);
       Object.assign(obj, patch);
       await obj.save({ transaction: t });
-      if (coberturaIds !== undefined) await obj.setCoberturas(coberturaIds, { transaction: t });
+      if (coberturaIds !== undefined) {
+        if (coberturaIds.length === 0) throw 'Um seguro deve ter pelo menos uma cobertura cadastrada!';
+        await obj.setCoberturas(coberturaIds, { transaction: t });
+      }
       return await Seguro.findByPk(obj.id, { include: { all: true }, transaction: t });
     });
   }

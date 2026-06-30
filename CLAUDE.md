@@ -87,7 +87,7 @@ Follow the pattern already established:
 - **Rule — Inspection fee:** Before creating, queries all completed checkouts for the client (via Reserva → Checkin → Checkout) and sums their avaria counts. If total > 3, `taxaInspecao = 150.00` is added to `valorFinal`. The `taxaInspecao` field is stored on the Reserva model and displayed as a separate line in the financial breakdown. Also recalculated on `update()` when financial data changes.
 
 **CheckoutService.create():**
-- `quilometragemCheckout` must be >= `checkin.quilometragemCheckin` (equal is allowed)
+- `quilometragemCheckout` must be > `checkin.quilometragemCheckin` (strictly greater; equal is rejected because the vehicle must have left the lot)
 - **Rule 1 — Odometer history:** Queries `MAX(quilometragemCheckout)` via JOIN `Checkout → Checkin` filtered by `veiculoId`. The new reading cannot be less than the maximum ever registered for that vehicle across all historical checkouts. Uses `raw: true` and `subQuery: false` to ensure correct aggregate SQL generation.
 - After creating: `veiculo.quilometragem` is updated to `quilometragemCheckout`; vehicle status → `'Disponível'`; reserva status → `'Concluída'`
 - **Rule 2 — Inspection fee indicator:** `taxaInspecao` on the Checkout record indicates whether the client's total avaria count (historical + this checkout's avarias) exceeds 3. If yes, stores `R$ 150.00` as a warning that the **next reservation** will be charged. The actual charge is applied in `ReservaService.create()`, not here.

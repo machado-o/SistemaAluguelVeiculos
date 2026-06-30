@@ -17,6 +17,10 @@ const REPORTS = [
 
 function fmtBRL(v) { return `R$ ${parseFloat(v || 0).toFixed(2)}`; }
 function fmtN(v) { return parseInt(v || 0).toLocaleString('pt-BR'); }
+function fmtDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('pt-BR', { dateStyle: 'short' });
+}
 
 function ReportTable({ reportKey, dados, totals }) {
   if (!dados) return null;
@@ -59,22 +63,32 @@ function ReportTable({ reportKey, dados, totals }) {
       { h: 'Top funcionário', r: d => d.funcionarioComMaisCheckins || '—' },
     ],
     'checkouts-avarias-por-veiculo': [
+      { h: 'Check-in', r: d => <span className="font-mono text-xs" style={{ color: '#6B7280' }}>#{d.checkinId}</span> },
       { h: 'Veículo', r: d => <div><div className="font-mono font-semibold">{d.placa}</div><div className="text-xs" style={{ color: '#6B7280' }}>{d.marca} {d.modelo}</div></div> },
-      { h: 'Categoria', r: d => d.categoriaNome },
-      { h: 'Checkouts', r: d => fmtN(d.quantidadeCheckouts), right: true },
+      { h: 'Data check-in', r: d => fmtDate(d.dataCheckin) },
+      { h: 'Data check-out', r: d => fmtDate(d.dataCheckout) },
+      { h: 'Km devolução', r: d => `${parseFloat(d.quilometragemCheckout || 0).toLocaleString('pt-BR')} km`, right: true, mono: true },
       { h: 'Avarias', r: d => fmtN(d.quantidadeAvarias), right: true },
-      { h: 'Valor total avarias', r: d => fmtBRL(d.valorTotalAvarias), right: true, mono: true },
-      { h: 'Valor médio', r: d => fmtBRL(d.valorMedioAvaria), right: true, mono: true },
-      { h: 'Tipos', r: d => <span className="text-xs">{d.tiposAvarias || '—'}</span> },
+      { h: 'Descrição avarias', r: d => <span className="text-xs">{d.descricaoAvarias || '—'}</span> },
+      { h: 'Valor avarias', r: d => fmtBRL(d.valorTotalAvarias), right: true, mono: true },
+      { h: 'Multa gerada', r: d => (
+        <div className="text-right">
+          <div style={{ fontFamily: "'JetBrains Mono', monospace" }}>{fmtBRL(d.valorMulta)}</div>
+          {d.seguroContratado
+            ? <div className="text-xs mt-0.5" style={{ color: '#6B7280' }}>franquia: {fmtBRL(d.franquiaSeguro)}</div>
+            : <div className="text-xs mt-0.5" style={{ color: '#6B7280' }}>sem seguro</div>}
+        </div>
+      ), right: true },
     ],
     'checkouts-multas-por-cliente': [
-      { h: 'Cliente', r: d => <div><div className="font-medium">{d.clienteNome}</div><div className="font-mono text-xs" style={{ color: '#6B7280' }}>{d.cpf}</div></div> },
-      { h: 'E-mail', r: d => <span className="text-xs" style={{ color: '#6B7280' }}>{d.email}</span> },
-      { h: 'Checkouts', r: d => fmtN(d.quantidadeCheckouts), right: true },
-      { h: 'Multas', r: d => fmtN(d.quantidadeMultas), right: true },
-      { h: 'Valor total multas', r: d => fmtBRL(d.valorTotalMultas), right: true, mono: true },
-      { h: 'Pendentes', r: d => fmtN(d.multasPendentes), right: true },
-      { h: 'Taxa inspeção', r: d => fmtBRL(d.totalTaxasInspecao), right: true, mono: true },
+      { h: 'Cliente', r: d => d.clienteNome },
+      { h: 'Data emissão', r: d => fmtDate(d.dataEmissao) },
+      { h: 'Descrição', r: d => <span className="text-xs">{d.descricao || '—'}</span> },
+      { h: 'Veículo', r: d => d.placa ? <div><div className="font-mono font-semibold">{d.placa}</div><div className="text-xs" style={{ color: '#6B7280' }}>{d.marca} {d.modelo}</div></div> : <span style={{ color: '#6B7280' }}>—</span> },
+      { h: 'Seguro', r: d => d.seguroContratado ? <div><div className="text-sm">{d.seguroContratado}</div><div className="text-xs" style={{ color: '#6B7280' }}>Franquia: {fmtBRL(d.franquia)}</div></div> : <span style={{ color: '#6B7280' }}>—</span> },
+      { h: 'Avarias associadas', r: d => <span className="text-xs">{d.descricaoAvarias || '—'}</span> },
+      { h: 'Valor multa', r: d => fmtBRL(d.valorMulta), right: true, mono: true },
+      { h: 'Status', r: d => <StatusBadge status={d.statusMulta} entity="multa" /> },
     ],
   };
 
@@ -95,12 +109,11 @@ function ReportTable({ reportKey, dados, totals }) {
       'Qtd. check-ins': { field: 'totalCheckinsGlobal', fmt: fmtN },
     },
     'checkouts-avarias-por-veiculo': {
-      'Avarias':            { field: 'totalAvariasGlobal',     fmt: fmtN },
-      'Valor total avarias': { field: 'totalValorAvariasGlobal', fmt: fmtBRL },
+      'Avarias':      { field: 'totalAvariasGlobal',      fmt: fmtN },
+      'Valor avarias': { field: 'totalValorAvariasGlobal', fmt: fmtBRL },
     },
     'checkouts-multas-por-cliente': {
-      'Multas':             { field: 'totalMultasGlobal',     fmt: fmtN },
-      'Valor total multas': { field: 'totalValorMultasGlobal', fmt: fmtBRL },
+      'Valor multa': { field: 'totalValorMultasGlobal', fmt: fmtBRL },
     },
   };
 
